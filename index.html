@@ -206,9 +206,27 @@
             transform: scale(0.992);
         }
 
+        /*
+         * VÍDEO FLEXÍVEL
+         * A caixa começa com um tamanho seguro e depois se ajusta
+         * automaticamente à proporção real do arquivo video.mp4.
+         */
         .video-wrapper {
-            width: 100%;
-            aspect-ratio: 9 / 16;
+            --video-ratio: 0.5625;
+            --video-aspect: 9 / 16;
+            --video-max-height: clamp(260px, 52dvh, 560px);
+
+            width: min(
+                100%,
+                calc(var(--video-max-height) * var(--video-ratio))
+            );
+
+            max-width: 100%;
+            max-height: var(--video-max-height);
+
+            margin: 0 auto;
+
+            aspect-ratio: var(--video-aspect);
 
             position: relative;
             overflow: hidden;
@@ -219,21 +237,32 @@
             box-shadow:
                 0 16px 40px rgba(0, 0, 0, 0.5),
                 0 0 20px rgba(255, 0, 55, 0.12);
+
+            transition:
+                width 0.2s ease,
+                aspect-ratio 0.2s ease,
+                max-height 0.2s ease;
         }
 
         /*
-         * Pointer-events none faz o toque atravessar
-         * o vídeo e chegar na área clicável.
+         * O vídeo sempre aparece inteiro.
+         * Não corta vertical, quadrado ou horizontal.
          */
         .video-wrapper video {
             width: 100%;
             height: 100%;
+
             display: block;
 
             object-fit: contain;
             object-position: center;
 
             background: #000;
+
+            /*
+             * Faz o clique atravessar o vídeo
+             * e ativar o redirecionamento.
+             */
             pointer-events: none;
         }
 
@@ -686,6 +715,13 @@
             }
 
             .video-wrapper {
+                width: min(
+                    100%,
+                    calc(var(--video-max-height) * var(--video-ratio))
+                );
+
+                max-height: var(--video-max-height);
+
                 border-radius: 18px;
             }
 
@@ -721,6 +757,13 @@
             }
 
             .video-wrapper {
+                width: min(
+                    100%,
+                    calc(var(--video-max-height) * var(--video-ratio))
+                );
+
+                max-height: var(--video-max-height);
+
                 border-radius: 16px;
             }
 
@@ -771,7 +814,7 @@
 
         <section class="card">
 
-            <div class="video-wrapper">
+            <div class="video-wrapper" id="videoWrapper">
 
                 <!--
                     O vídeo não possui controles porque
@@ -902,6 +945,9 @@
         const presentationVideo =
             document.getElementById("presentationVideo");
 
+        const videoWrapper =
+            document.getElementById("videoWrapper");
+
         const accessPopup =
             document.getElementById("accessPopup");
 
@@ -967,6 +1013,72 @@
 
         const preparedDestinationUrl =
             buildDestinationUrl();
+
+        /*
+         * Ajusta a caixa do vídeo pela resolução real.
+         *
+         * Exemplos:
+         * 1080x1920 = vertical
+         * 1080x1080 = quadrado
+         * 1920x1080 = horizontal
+         */
+        function adjustVideoWrapper() {
+            if (
+                !presentationVideo.videoWidth ||
+                !presentationVideo.videoHeight
+            ) {
+                return;
+            }
+
+            const videoWidth =
+                presentationVideo.videoWidth;
+
+            const videoHeight =
+                presentationVideo.videoHeight;
+
+            const ratio =
+                videoWidth / videoHeight;
+
+            videoWrapper.style.setProperty(
+                "--video-ratio",
+                ratio
+            );
+
+            videoWrapper.style.setProperty(
+                "--video-aspect",
+                videoWidth + " / " + videoHeight
+            );
+
+            /*
+             * Se o vídeo for quadrado ou horizontal,
+             * reduz um pouco a altura para não dominar a tela.
+             */
+            if (ratio >= 1) {
+                videoWrapper.style.setProperty(
+                    "--video-max-height",
+                    "clamp(220px, 42dvh, 430px)"
+                );
+            } else {
+                videoWrapper.style.setProperty(
+                    "--video-max-height",
+                    "clamp(260px, 52dvh, 560px)"
+                );
+            }
+        }
+
+        presentationVideo.addEventListener(
+            "loadedmetadata",
+            adjustVideoWrapper
+        );
+
+        presentationVideo.addEventListener(
+            "loadeddata",
+            adjustVideoWrapper
+        );
+
+        if (presentationVideo.readyState >= 1) {
+            adjustVideoWrapper();
+        }
 
         /*
          * Inicia o vídeo automaticamente.
@@ -1089,23 +1201,6 @@
                 startRedirect();
             }
         );
-
-        /*
-         * Carrega o pixel depois do conteúdo principal.
-         */
-        window.addEventListener("load", function() {
-            setTimeout(function() {
-                const trackingPixel =
-                    new Image();
-
-                trackingPixel.width = 1;
-                trackingPixel.height = 1;
-                trackingPixel.alt = "";
-
-                trackingPixel.src =
-                    "https://tsyndicate.com/api/v2/cpa/331233/pixel.gif?goalid=0";
-            }, 1500);
-        });
     </script>
 
 </body>
